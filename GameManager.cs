@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -8,24 +10,32 @@ public class GameManager : MonoBehaviour
     public Sprite foodImage;
     public Color foodColor;
 
+    public TMPro_Text scoreText;
+    
     public float updateTime = 1f;
-    public Vector2 mapSize = new Vector2(16, 16); // must be uneven, just the way i coded/designed this
+    
+    public Vector2Int mapSize = new Vector2Int(16, 16); 
 
-    List<GameObject> snakeBodyObjects = new List<GameObject>();
-    Vector2 EndPosition, lastHeadPos;
-    GameObject foodObject;
     int playerMovementDir;
+    int currentScore;
     float currentUpdateTimer;
     float timer;
     bool gameover = false;
 
+    List<GameObject> snakeBodyObjects = new List<GameObject>();
+    GameObject foodObject;
+    Vector2 EndPosition, lastHeadPos;
+
     private void Start()
     {
         currentUpdateTimer = updateTime;
+        scoreText.text = "00000";
+        currentScore = 0;
 
         //Spawn player
-        SpawnBodyPart(new Vector2(mapSize.x / 2f, mapSize.y / 2f));
-        EndPosition = new Vector2((mapSize.x / 2f) + 1, mapSize.y / 2f);
+        Vector2 mapMid = new Vector2(Mathf.Floor(mapSize.x / 2), Mathf.Floor(mapSize.y / 2));
+        SpawnBodyPart(mapMid.x, mapMid.y);
+        EndPosition = new Vector2(mapMid.x + 1, mapMid.y);
 
         //Setup food
         foodObject = new GameObject();
@@ -34,8 +44,8 @@ public class GameManager : MonoBehaviour
         foodRen.color = foodColor;
         UpdateFood();
 
-        Camera.main.orthographicSize = (mapSize.x / 2) + 1;
-        Camera.main.transform.position = new Vector3(mapSize.x / 2, mapSize.y / 2, -1);
+        Camera.main.orthographicSize = ((float)mapSize.x / 2) + 1;
+        Camera.main.transform.position = new Vector3((float)mapSize.x / 2, (float)mapSize.y / 2, -1);
     }
 
     private void Update()
@@ -216,7 +226,7 @@ public class GameManager : MonoBehaviour
     {
         GameObject playerObj = new GameObject();
         playerObj.transform.position = position;
-        playerObj.name = "Snake Part ";
+        playerObj.name = "Snake Part " + snakeBodyObjects.count + 1;
 
         SpriteRenderer spriteRen = playerObj.AddComponent<SpriteRenderer>();
         spriteRen.sprite = bodySprite;
