@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 
 public class GameManager : MonoBehaviour
@@ -13,6 +12,7 @@ public class GameManager : MonoBehaviour
     public TMPro_Text scoreText;
     
     public float updateTime = 1f;
+    public float minBodySize = .2f, maxBodySize = .7f, HeadSize = 1f;
     
     public Vector2Int mapSize = new Vector2Int(16, 16); 
 
@@ -28,24 +28,35 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        currentUpdateTimer = updateTime;
-        scoreText.text = "00000";
-        currentScore = 0;
+        Init();
 
+        Camera.main.orthographicSize = ((float)mapSize.x / 2) + 1;
+        Camera.main.transform.position = new Vector3((float)mapSize.x / 2, (float)mapSize.y / 2, -1);
+    }
+
+    void Init()
+    {
+        playerMovementDir = 0;
+        currentUpdateTimer = updateTime;
+        currentScore = 0;
+        scoreText.text = currentScore.ToString().PadLeft(5, '0');
+        
         //Spawn player
         Vector2 mapMid = new Vector2(Mathf.Floor(mapSize.x / 2), Mathf.Floor(mapSize.y / 2));
         SpawnBodyPart(mapMid.x, mapMid.y);
         EndPosition = new Vector2(mapMid.x + 1, mapMid.y);
 
         //Setup food
-        foodObject = new GameObject();
-        SpriteRenderer foodRen = foodObject.AddComponent<SpriteRenderer>();
-        foodRen.sprite = foodImage;
-        foodRen.color = foodColor;
+        if (foodObject == null)
+        {
+            foodObject = new GameObject();
+            foodObject.name = "Food";
+            SpriteRenderer foodRen = foodObject.AddComponent<SpriteRenderer>();
+            foodRen.sprite = foodImage;
+            foodRen.color = foodColor;
+        }
+        
         UpdateFood();
-
-        Camera.main.orthographicSize = ((float)mapSize.x / 2) + 1;
-        Camera.main.transform.position = new Vector3((float)mapSize.x / 2, (float)mapSize.y / 2, -1);
     }
 
     private void Update()
@@ -62,14 +73,13 @@ public class GameManager : MonoBehaviour
 
         //Independent on timer
         CheckInput();
-        
 
         //Timer, essentially characters movement speed
         timer -= Time.deltaTime;
-        if (timer > 0) return;
-        //reset timer if timer is below 0
+        if (timer > 0) return; //Return out of the code.
+        
+        //reset timer if timer is below 0 
         timer = currentUpdateTimer;
-
 
         //Move objects into next position
         UpdateBodyParts();
@@ -94,10 +104,15 @@ public class GameManager : MonoBehaviour
     {
         for (int i = snakeBodyObjects.Count; i-- > 0;)
         {
-            //Set Body Size
-            float scaleSize = ((float)snakeBodyObjects.Count - (i + 1) + 1f) * (1f / (float)snakeBodyObjects.Count);
-            scaleSize = Mathf.Clamp(scaleSize, 0.4f, 1f);
-            snakeBodyObjects[i].transform.localScale = new Vector3(scaleSize, scaleSize, 0);
+            if (i == 0) //Set head size
+            { 
+                snakeBodyObjects[i].transform.localScale = new Vector3(headSize, headSize, 0);
+            }
+            else //Set Body Size
+            {
+                float scaleSize = ((maxBodySize - minBodySize) / ((float)snakeBodyObjects.Count - 1)) + minBodySize;
+                snakeBodyObjects[i].transform.localScale = new Vector3(scaleSize, scaleSize, 0);
+            }
         }
     }
 
@@ -110,7 +125,6 @@ public class GameManager : MonoBehaviour
 
         for (int i = snakeBodyObjects.Count; i-- > 0;)
         {
-
             //Body            
             if (i > 1)
             {
@@ -141,7 +155,7 @@ public class GameManager : MonoBehaviour
                 }
             }
 
-            //Repeating
+            //Repeating of the map
             #region MapRepeating
             //Teleport to other side when outside of mapSize
             if (snakeBodyObjects[i].transform.position.x > mapSize.x) //If more than size, on x
@@ -196,12 +210,13 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
-
+        //return 0 if nothing
         return 0;
     }
 
     void UpdateFood()
     {
+        //Move food to new location, Random, can spawn inside player
         foodObject.transform.position = new Vector2((int)Random.Range(0, mapSize.x), (int)Random.Range(0, mapSize.y));
     }
 
@@ -209,7 +224,12 @@ public class GameManager : MonoBehaviour
     {
         SpawnBodyPart(EndPosition);
         UpdateBodySize();
+        
+        currentScore += 10;
+        scoreText.text = currentScore.ToString().PadLeft(5, '0')
 
+
+        //Man i do NOT rember what this whole section is for, i will figure it out!
         if (currentUpdateTimer > updateTime * .66f)
         {
             currentUpdateTimer = currentUpdateTimer * .9f;
@@ -243,14 +263,7 @@ public class GameManager : MonoBehaviour
             snakeBodyObjects.Remove(snakeBodyObjects[i]);
         }
 
-        playerMovementDir = 0;
-        currentUpdateTimer = updateTime;
-
-        //Spawn player
-        SpawnBodyPart(new Vector2(mapSize.x / 2f, mapSize.y / 2f));
-        EndPosition = new Vector2((mapSize.x / 2f) + 1, mapSize.y / 2f);
-
-        UpdateFood();
+        Init();
     }
 
     void GameOver()
